@@ -4,6 +4,8 @@
 <p id="status"></p>
 
 <script>
+    const apiUrl = "https://script.google.com/macros/s/AKfycby7ENh5naU3FAjGNMd8h0_j6BPIVnv8soTcXgvnihZExP5UdynasyXx8y7tUUqdvbdZ3g/exec";
+
     function sendData(action) {
         const workerName = document.getElementById("workerName").value.trim();
 
@@ -27,17 +29,22 @@
                     accuracy: position.coords.accuracy
                 };
 
-                fetch("https://script.google.com/macros/s/AKfycby7ENh5naU3FAjGNMd8h0_j6BPIVnv8soTcXgvnihZExP5UdynasyXx8y7tUUqdvbdZ3g/exec", {
+                fetch(apiUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data)
                 })
-                .then(response => response.text())
+                .then(response => response.json()) // Expect JSON response
                 .then(result => {
-                    document.getElementById("status").innerText = `Successfully ${action}`;
+                    if (result.success) {
+                        document.getElementById("status").innerText = `Successfully ${action}`;
+                    } else {
+                        document.getElementById("status").innerText = `Error: ${result.error || "Unknown error"}`;
+                    }
                 })
                 .catch(error => {
-                    document.getElementById("status").innerText = "Error sending data";
+                    document.getElementById("status").innerText = "Network error: Unable to send data.";
+                    console.error("Error:", error);
                 });
             },
             (error) => {
