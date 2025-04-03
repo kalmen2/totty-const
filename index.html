@@ -1,0 +1,48 @@
+<input type="text" id="workerName" placeholder="Enter your name">
+<button onclick="sendData('Punch In')">Punch In</button>
+<button onclick="sendData('Punch Out')">Punch Out</button>
+<p id="status"></p>
+
+<script>
+    function sendData(action) {
+        const workerName = document.getElementById("workerName").value.trim();
+
+        if (!workerName) {
+            alert("Please enter your name before punching in or out.");
+            return;
+        }
+
+        if (!navigator.geolocation) {
+            alert("Geolocation is not supported by your browser.");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const data = {
+                    workerName: workerName,
+                    action: action,
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
+
+                fetch("https://script.google.com/macros/s/AKfycby7ENh5naU3FAjGNMd8h0_j6BPIVnv8soTcXgvnihZExP5UdynasyXx8y7tUUqdvbdZ3g/exec", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.text())
+                .then(result => {
+                    document.getElementById("status").innerText = `Successfully ${action}`;
+                })
+                .catch(error => {
+                    document.getElementById("status").innerText = "Error sending data";
+                });
+            },
+            (error) => {
+                alert("Error getting location: " + error.message);
+            }
+        );
+    }
+</script>
