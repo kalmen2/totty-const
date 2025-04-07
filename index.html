@@ -1,55 +1,74 @@
-<input type="text" id="workerName" placeholder="Enter your name">
-<button onclick="sendData('Punch In')">Punch In</button>
-<button onclick="sendData('Punch Out')">Punch Out</button>
-<p id="status"></p>
-
-<script>
-    const apiUrl = "https://script.google.com/macros/s/AKfycby7ENh5naU3FAjGNMd8h0_j6BPIVnv8soTcXgvnihZExP5UdynasyXx8y7tUUqdvbdZ3g/exec";
-
-    function sendData(action) {
-        const workerName = document.getElementById("workerName").value.trim();
-
-        if (!workerName) {
-            alert("Please enter your name before punching in or out.");
-            return;
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Punch In</title>
+    <script>
+      async function submitForm(overwrite = false) {
+        const name = document.getElementById("name").value.trim();
+        if (!name) {
+          alert("Please enter your name.");
+          return;
         }
 
+        // Get user's location (latitude and longitude) with high accuracy
         if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser.");
-            return;
+          alert("Geolocation is not supported by this browser.");
+          return;
         }
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const data = {
-                    workerName: workerName,
-                    action: action,
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    accuracy: position.coords.accuracy
-                };
+        navigator.geolocation.getCurrentPosition(function(position) {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
 
-                fetch(apiUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data)
-                })
-                .then(response => response.json()) // Expect JSON response
-                .then(result => {
-                    if (result.success) {
-                        document.getElementById("status").innerText = `Successfully ${action}`;
-                    } else {
-                        document.getElementById("status").innerText = `Error: ${result.error || "Unknown error"}`;
-                    }
-                })
-                .catch(error => {
-                    document.getElementById("status").innerText = "Network error: Unable to send data.";
-                    console.error("Error:", error);
-                });
-            },
-            (error) => {
-                alert("Error getting location: " + error.message);
-            }
-        );
-    }
-</script>
+          // Create Google Maps URL
+          const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+          const params = new URLSearchParams({
+            name: name,
+            latitude: latitude,
+            longitude: longitude,
+            ...(overwrite && { overwrite: "yes" })
+          });
+
+          sendRequest(params, mapsLink);
+        }, function(error) {
+          alert("Failed to get location. Please ensure your browser has location access.");
+        }, {
+          enableHighAccuracy: true, // Use GPS or more accurate methods
+          timeout: 5000, // Timeout after 5 seconds
+          maximumAge: 0 // Avoid using cached data
+        });
+      }
+
+      async function sendRequest(params, mapsLink) {
+        const response = await fetch("https://script.google.com/macros/s/AKfycbzfndLj3S7Yp9UUjCG55R2uH4g8ooQ-cWHPLvn-e4NU0kz3ckLimRTAnkvFnL0QUEhrcA/exec", {
+          method: "POST",
+          body: params
+        });
+
+        const text = await response.text();
+
+        if (text.includes("Already submitted")) {
+          if (confirm("You already submitted today. Overwrite?")) {
+            submitForm(true); // Resubmit with overwrite
+          }
+        } else {
+          alert(text);
+        }
+
+        // Handle Maps Link in Column C
+        const name = document.getElementById("name").value.trim();
+        const result = await fetch(`${YOUR_SCRIPT_URL_HERE}?name=${name}`);
+        const json = await result.json();
+        document.getElementById("mapLink").innerHTML = `<a href="${mapsLink}" target="_blank">View Location</a>`;
+      }
+    </script>
+  </head>
+  <body>
+    <h2>Enter Your Name</h2>
+    <input type="text" id="name" placeholder="Your name" />
+    <button onclick="submitForm()">Submit</button>
+
+    <div id="mapLink"></div> <!-- Link to show map after submission -->
+  </body>
+</html>
